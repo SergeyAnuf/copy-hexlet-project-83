@@ -31,7 +31,7 @@ def get_db():
 
 @app.route('/')
 def index():
-    #Извлекаем и удаляем сообщение из сессии
+    # Извлекаем и удаляем сообщение из сессии
     message_data = session.pop('last_check_message', None)
     if message_data:
         flash(message_data[0], message_data[1])
@@ -40,7 +40,7 @@ def index():
 
 @app.route('/urls', methods=['GET'])
 def urls():
-    #Список сайтов
+    # Список сайтов
     conn = get_db()
     cur = conn.cursor()
     cur.execute('''
@@ -70,13 +70,13 @@ def url_detail(id):
     conn = get_db()
     try:
         with conn.cursor as cur:
-            #Получение данных URL
+            # Получение данных URL
             cur.execute('SELECT * FROM urls WHERE id = %s', (id,))
             url = cur.fetchone()
             if not url:
                 abort(404)
 
-            #Получение списка проверок
+            # Получение списка проверок
             cur.execute('''
                 SELECT
                     id,
@@ -138,7 +138,7 @@ def url_check(id):
     conn = get_db()
     try:
         with conn.cursor() as cur:
-            #Получаем URL из базы
+            # Получаем URL из базы
             cur.execute('SELECT id, name FROM urls WHERE id = %s', (id,))
             url_data = cur.fetchone()
             if not url_data:
@@ -156,7 +156,7 @@ def url_check(id):
 
             soup = BeautifulSoup(response.text, 'html.perser')
 
-            #Извлекаем данные
+            # Извлекаем данные
             h1 = soup.h1.text.strip() if soup.h1 else None
             title = soup.title.text.strip() if soup.title else None
             description_tag = soup.find('meta', attrs={'name': 'description'})
@@ -166,7 +166,7 @@ def url_check(id):
                 else None
             )
 
-            #Вставляем проверку
+            # Вставляем проверку
             cur.execute('''
                 INSERT INTO url_checks (
                     url_id,
