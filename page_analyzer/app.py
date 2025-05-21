@@ -81,7 +81,7 @@ def url_detail(id):
                 SELECT
                     id,
                     url_id,
-                    status_code,
+     ty6               status_code,
                     h1,
                     title,
                     description,
