@@ -40,20 +40,19 @@ def index():
 
 @app.route('/urls', methods=['GET'])
 def urls():
-    # Список сайтов
     conn = get_db()
     cur = conn.cursor()
     cur.execute('''
-        SELECT
+        SELECT 
             urls.id,
             urls.name,
             urls.created_at,
             MAX(url_checks.created_at) AS last_check,
-            (SELECT status_code
-            FROM url_checks
-            WHERE url.id = urls.id
-            ORDER BY created_at DESC
-            LIMIT 1) AS last_status
+            (SELECT status_code 
+             FROM url_checks 
+             WHERE url_id = urls.id 
+             ORDER BY created_at DESC 
+             LIMIT 1) AS last_status
         FROM urls
         LEFT JOIN url_checks ON urls.id = url_checks.url_id
         GROUP BY urls.id
@@ -69,7 +68,7 @@ def urls():
 def url_detail(id):
     conn = get_db()
     try:
-        with conn.cursor as cur:
+        with conn.cursor() as cur:
             # Получение данных URL
             cur.execute('SELECT * FROM urls WHERE id = %s', (id,))
             url = cur.fetchone()
@@ -78,14 +77,14 @@ def url_detail(id):
 
             # Получение списка проверок
             cur.execute('''
-                SELECT
-                    id,
-                    url_id,
-     ty6               status_code,
-                    h1,
-                    title,
-                    description,
-                    created_at,
+                SELECT 
+                    id, 
+                    url_id, 
+                    status_code, 
+                    h1, 
+                    title, 
+                    description, 
+                    created_at 
                 FROM url_checks
                 WHERE url_id = %s
                 ORDER BY created_at DESC
@@ -103,7 +102,7 @@ def url_detail(id):
 @app.route('/urls', methods=['POST'])
 def add_url():
     raw_url = request.form.get('url', '').strip()
-    error = validate_url(raw_url)
+    error = validate_url(raw_url)  # Изменено на error вместо errors
     if error:
         flash(error, 'danger')
         return render_template('index.html', url=raw_url), 422
@@ -118,14 +117,14 @@ def add_url():
             'INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id;',
             (normalized_url, datetime.now())
         )
-        url_id = cur.fetcone()[0]
+        url_id = cur.fetchone()[0]
         conn.commit()
         flash('Сайт успешно добавлен', 'success')
         return redirect(url_for('url_detail', id=url_id))
     except psycopg2.IntegrityError:
         conn.rollback()
         cur.execute('SELECT id FROM urls WHERE name = %s;', (normalized_url,))
-        url_id = cur.fetchone()
+        url_id = cur.fetchone()[0]
         flash('Страница уже существует', 'info')
         return redirect(url_for('url_detail', id=url_id))
     finally:
@@ -150,11 +149,11 @@ def url_check(id):
             try:
                 response = requests.get(url_name, timeout=10)
                 response.raise_for_status()
-            except requests.excption.RequestException:
+            except requests.exceptions.RequestException:
                 flash('Произошла ошибка при проверке', 'danger')
                 return redirect(url_for('url_detail', id=url_id))
 
-            soup = BeautifulSoup(response.text, 'html.perser')
+            soup = BeautifulSoup(response.text, 'html.parser')
 
             # Извлекаем данные
             h1 = soup.h1.text.strip() if soup.h1 else None
@@ -175,7 +174,7 @@ def url_check(id):
                     title,
                     description,
                     created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s)
             ''', (
                 url_id,
                 response.status_code,
@@ -185,11 +184,11 @@ def url_check(id):
                 datetime.now()
             ))
             conn.commit()
-            flash('Страница уже проверена', 'success')
+            flash('Страница успешно проверена', 'success')
 
     except Exception as e:
         conn.rollback()
-        flash('Ошибка: {str(e)}', 'danger')
+        flash(f'Ошибка: {str(e)}', 'danger')
         app.logger.error(f'Ошибка проверки: {str(e)}')
     finally:
         conn.close()
